@@ -43,7 +43,7 @@ class OpenBekenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not device_id:
             return self.async_abort(reason="no_device_id")
         await self.async_set_unique_id(device_id.replace(":", "").replace("-", "").lower())
-        self._abort_if_unique_id_configured({CONF_HOST: discovery_info.host})
+        self._abort_if_unique_id_configured({CONF_HOST: discovery_info.host, "port": discovery_info.port or DEFAULT_PORT})
         self._discovery_info = {
             CONF_HOST: discovery_info.host,
             "port": discovery_info.port or DEFAULT_PORT,
@@ -54,11 +54,20 @@ class OpenBekenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.async_step_discovery_confirm()
 
     async def async_step_discovery_confirm(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
             info = self._discovery_info
             assert info is not None
-            return await self._async_add_device(info[CONF_HOST], info["port"], info[CONF_NAME], info["device_id"])
-        return self.async_show_form(step_id="discovery_confirm", description_placeholders={"name": self.context["title_placeholders"]["name"]})
+            try:
+                hello = await async_probe_device(info[CONF_HOST], info["port"])
+                device_id = hello["device_id"].replace(":", "").replace("-", "").lower()
+                if device_id != info["device_id"].replace(":", "").replace("-", "").lower():
+                    raise ValueError("Discovered OpenBeken device identity changed")
+                return await self._async_add_device(info[CONF_HOST], info["port"], info[CONF_NAME], info["device_id"])
+            except (OSError, asyncio.TimeoutError, ValueError, KeyError) as err:
+                _LOGGER.debug("Could not connect to discovered OpenBeken device: %s", err)
+                errors["base"] = "cannot_connect"
+        return self.async_show_form(step_id="discovery_confirm", errors=errors, description_placeholders={"name": self.context["title_placeholders"]["name"]})
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         errors: dict[str, str] = {}

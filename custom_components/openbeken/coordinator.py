@@ -36,14 +36,18 @@ async def async_probe_device(host: str, port: int) -> dict[str, Any]:
     reader, writer = await asyncio.wait_for(asyncio.open_connection(host, port), timeout=5)
     try:
         hello = await _read_json_line(reader, timeout=8)
-        if hello.get("type") != "hello" or hello.get("protocol") != PROTOCOL_VERSION or not hello.get("device_id"):
+        device_id = hello.get("device_id")
+        if hello.get("type") != "hello" or hello.get("protocol") != PROTOCOL_VERSION or not isinstance(device_id, str) or not device_id:
             raise ValueError("The device does not speak OpenBeken API protocol 1")
         writer.write(b'{"type":"hello","protocol":1,"client":"home-assistant"}\n')
-        await writer.drain()
+        await asyncio.wait_for(writer.drain(), timeout=5)
         return hello
     finally:
         writer.close()
-        await writer.wait_closed()
+        try:
+            await asyncio.wait_for(writer.wait_closed(), timeout=2)
+        except (OSError, asyncio.TimeoutError):
+            pass
 
 
 class OpenBekenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -95,7 +99,8 @@ class OpenBekenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Finish the entire initial exchange within one overall deadline."""
         self._reader, self._writer = await asyncio.wait_for(asyncio.open_connection(self.host, self.port), timeout=5)
         hello = await _read_json_line(self._reader, timeout=8)
-        if hello.get("type") != "hello" or hello.get("protocol") != PROTOCOL_VERSION or hello.get("device_id", "").replace(":", "").replace("-", "").lower() != self.device_id.replace(":", "").replace("-", "").lower():
+        device_id = hello.get("device_id")
+        if hello.get("type") != "hello" or hello.get("protocol") != PROTOCOL_VERSION or not isinstance(device_id, str) or device_id.replace(":", "").replace("-", "").lower() != self.device_id.replace(":", "").replace("-", "").lower():
             raise ValueError("OpenBeken device identity or protocol changed")
         self.firmware = hello.get("firmware")
         self._writer.write(b'{"type":"hello","protocol":1,"client":"home-assistant"}\n')
@@ -173,7 +178,8 @@ class OpenBekenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.async_set_updated_data({"entities": self.entities, "states": self.states})
         elif msg_type == "state" and isinstance(message.get("entities"), dict):
             self.states = {key: dict(value) for key, value in message["entities"].items() if isinstance(value, dict)}
-            self._seq = message.get("seq")
+            seq = message.get("seq")
+            self._seq = seq if isinstance(seq, int) else None
             self.async_set_updated_data({"entities": self.entities, "states": self.states})
         elif msg_type == "state_changed" and isinstance(message.get("state"), dict):
             seq = message.get("seq")
@@ -215,8 +221,8 @@ class OpenBekenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._next_id += 1
         future = self.hass.loop.create_future()
         self._pending[request_id] = future
-        await self._send({"type": "set_state", "id": request_id, "entity": entity_id, "state": state})
         try:
+            await self._send({"type": "set_state", "id": request_id, "entity": entity_id, "state": state})
             result = await asyncio.wait_for(future, timeout=5)
         finally:
             self._pending.pop(request_id, None)
@@ -229,8 +235,8 @@ class OpenBekenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._next_id += 1
         future = self.hass.loop.create_future()
         self._pending[request_id] = future
-        await self._send({"type": "restart", "id": request_id})
         try:
+            await self._send({"type": "restart", "id": request_id})
             result = await asyncio.wait_for(future, timeout=5)
         finally:
             self._pending.pop(request_id, None)

@@ -28,3 +28,32 @@ See the [native API protocol documentation](https://github.com/openshwprojects/O
 ## Issues
 
 Please report integration-specific issues in the [issue tracker](https://github.com/WilbertVerhoeff/openbeken-homeassistant/issues).
+
+## Development and tests
+
+The test dependencies are pinned to Home Assistant **2026.9.4** through
+`pytest-homeassistant-custom-component`. Use **Python 3.14** on Linux, preferably
+in a virtual environment:
+
+```sh
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements_test.txt
+ruff check tests
+ruff format --check tests
+python -m pytest -q
+python -m coverage report --include=custom_components/openbeken/config_flow.py --fail-under=100
+```
+
+The suite uses real Home Assistant config flows, entries, entity/device registries,
+and services. A local TCP device emulator exercises the actual protocol and push
+connection without physical hardware. Focused tests inject failures and inspect
+wire messages, metadata changes, timeouts, reconnects, resynchronization,
+concurrent commands, cancellation, reload and unload.
+
+Pytest enforces at least **95% coverage including branches**, with a 30-second
+deadline per test. GitHub Actions also requires **100% config-flow coverage** and
+checks test lint and formatting on every push and pull request. The XML coverage
+report is available as an Actions artifact. This suite does not replace testing
+on physical OpenBeken devices or real mDNS networks, and currently covers the
+pinned Home Assistant version rather than a compatibility matrix.

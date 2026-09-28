@@ -48,7 +48,7 @@ class OpenBekenLight(OpenBekenEntity, LightEntity):
             modes.add(ColorMode.BRIGHTNESS)
         self._attr_supported_color_modes = modes
         self._attr_effect_list = [EFFECT_OFF, *entity.get("effects", [])] if "effects" in self.features else None
-        self._attr_supported_features = LightEntityFeature.EFFECT if "effects" in self.features else 0
+        self._attr_supported_features = LightEntityFeature.EFFECT if "effects" in self.features else LightEntityFeature(0)
         if "color_temp" in self.features:
             self._attr_min_color_temp_kelvin = round(1000000 / entity["max_mireds"])
             self._attr_max_color_temp_kelvin = round(1000000 / entity["min_mireds"])

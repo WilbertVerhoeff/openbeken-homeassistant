@@ -1,0 +1,20 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+timeout = 30
+addopts = "--strict-markers --strict-config --cov=custom_components.openbeken --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=95"
+
+[tool.coverage.run]
+source = ["custom_components.openbeken"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.ruff]
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
