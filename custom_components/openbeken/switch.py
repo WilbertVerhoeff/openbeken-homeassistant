@@ -8,6 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .entity import OpenBekenEntity, async_setup_dynamic_platform
 from .coordinator import OpenBekenCoordinator
+from .errors import async_execute_command
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -23,7 +24,7 @@ class OpenBekenSwitch(OpenBekenEntity, SwitchEntity):
         return self.obk_state.get("on")
 
     async def async_turn_on(self, **kwargs) -> None:
-        await self.coordinator.async_set_state(self.obk_id, {"on": True})
+        await async_execute_command(self.coordinator.async_set_state(self.obk_id, {"on": True}))
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self.coordinator.async_set_state(self.obk_id, {"on": False})
+        await async_execute_command(self.coordinator.async_set_state(self.obk_id, {"on": False}))

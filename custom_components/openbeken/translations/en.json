@@ -1,11 +1,42 @@
 {
   "config": {
     "step": {
-      "user": {"title": "Connect to OpenBeken", "description": "Enter the device's IP address and native API port."},
+      "user": {"title": "Connect to OpenBeken", "description": "Enter the device's IP address or hostname and native API port (default: 6054). The OpenBekenAPI driver must be running.", "data": {"host": "IP address or hostname", "port": "Port"}},
       "discovery_confirm": {"title": "OpenBeken discovered", "description": "Add {name} to Home Assistant?"},
       "reconfigure": {"title": "Reconfigure OpenBeken", "description": "Enter the new IP address or hostname and native API port of the same device.", "data": {"host": "IP address or hostname", "port": "Port"}}
     },
-    "error": {"cannot_connect": "Could not connect to the OpenBeken device."},
-    "abort": {"already_configured": "This OpenBeken device is already configured.", "unsupported_protocol": "The device uses an unsupported API version.", "no_device_id": "The device did not advertise an identifier.", "wrong_device": "This address belongs to a different OpenBeken device. Add that device as a separate integration.", "reconfigure_successful": "The connection settings have been updated."}
+    "error": {
+      "cannot_connect": "Could not connect. Check the address, port, network access and whether the OpenBekenAPI driver is running. The default port is 6054.",
+      "unsupported_protocol": "This device advertises an unsupported API version. Use OpenBeken firmware with native API version 1, or check the address and port.",
+      "invalid_response": "The endpoint did not return a valid OpenBeken greeting. Check the native API port (default: 6054) and the OpenBekenAPI driver.",
+      "wrong_device": "The discovered address belongs to a different device. Discover it again or add the intended device manually. Existing settings have not been changed."
+    },
+    "abort": {
+      "already_configured": "This OpenBeken device is already configured.",
+      "already_in_progress": "This device is already being configured. Complete the existing setup first.",
+      "unsupported_protocol": "The device advertises an unsupported API version. Use OpenBeken firmware with native API version 1.",
+      "no_device_id": "The device did not advertise an identifier. Check the firmware and the MDNS driver, or add the device manually.",
+      "wrong_device": "This address belongs to a different OpenBeken device. Add it as a separate integration. Existing settings have not been changed.",
+      "reconfigure_successful": "The connection settings have been updated."
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {"message": "Could not connect to OpenBeken. Check the address, native API port (default: 6054), network and OpenBekenAPI driver. Home Assistant will retry automatically."},
+    "unsupported_protocol": {"message": "The endpoint advertises an unsupported API version. Check the address and port, or use OpenBeken firmware with native API version 1."},
+    "invalid_response": {"message": "The endpoint did not return a valid OpenBeken response. Check the native API port and the OpenBekenAPI driver."},
+    "wrong_device": {"message": "The configured address belongs to a different device. Reconfigure the integration with the original device's address to preserve its entities."},
+    "command_timeout": {"message": "The device did not confirm the command in time. Its state is uncertain; check the device before trying again."},
+    "device_unavailable": {"message": "The device could not be reached. Check its network connection and address. Home Assistant will retry the connection automatically."},
+    "command_rejected": {"message": "The device rejected the command. Check whether the firmware supports the requested action or light setting."}
+  },
+  "issues": {
+    "unsupported_protocol": {
+      "title": "Unsupported OpenBeken API for {name}",
+      "description": "The endpoint configured for {name} advertises an unsupported API version. Check its address and port via Settings → Devices & services → OpenBeken → Reconfigure. If they are correct, install OpenBeken firmware with native API version 1 and enable the OpenBekenAPI driver. Home Assistant retries automatically and removes this notice when the connection works."
+    },
+    "wrong_device": {
+      "title": "A different OpenBeken device was found for {name}",
+      "description": "The configured address now belongs to a different device. To preserve the entities and automations of {name}, open Settings → Devices & services → OpenBeken → Reconfigure and enter the original device's current address and port. Add a replacement device as a separate integration. This notice disappears once the original device reconnects."
+    }
   }
 }

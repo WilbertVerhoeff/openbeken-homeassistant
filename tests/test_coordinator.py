@@ -132,11 +132,33 @@ async def test_handshake_rejects_identity(
         "custom_components.openbeken.coordinator.asyncio.open_connection",
         AsyncMock(return_value=(stream(HELLO | changes), writer)),
     ):
-        with pytest.raises(UpdateFailed, match="identity or protocol changed"):
+        with pytest.raises(UpdateFailed):
             await coordinator._connect_once()
     assert not coordinator.connected
     assert coordinator._writer is None
     writer.close.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("changes", "key"),
+    [
+        ({"protocol": 2}, "unsupported_protocol"),
+        ({"device_id": "other"}, "wrong_device"),
+        ({"type": "ping"}, "invalid_response"),
+    ],
+)
+async def test_connection_failure_is_translatable(
+    coordinator: OpenBekenCoordinator, changes: dict, key: str
+) -> None:
+    writer = writer_mock()
+    with patch(
+        "custom_components.openbeken.coordinator.asyncio.open_connection",
+        AsyncMock(return_value=(stream(HELLO | changes), writer)),
+    ):
+        with pytest.raises(UpdateFailed) as caught:
+            await coordinator._connect_once()
+    assert caught.value.translation_domain == DOMAIN
+    assert caught.value.translation_key == key
 
 
 async def test_handshake_requires_entities_and_full_snapshot(

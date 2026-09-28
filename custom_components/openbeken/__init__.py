@@ -8,11 +8,17 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import OpenBekenCoordinator
+from .issues import async_clear_connection_issue
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up from YAML is intentionally unsupported; use discovery or UI."""
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove repair notices when the user removes this device."""
+    async_clear_connection_issue(hass, entry)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

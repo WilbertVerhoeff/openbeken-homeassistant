@@ -13,6 +13,11 @@ from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openbeken.const import DEFAULT_PORT, DOMAIN, SERVICE_TYPE
+from custom_components.openbeken.errors import (
+    DeviceIdentityError,
+    InvalidResponseError,
+    UnsupportedProtocolError,
+)
 
 from .conftest import DEVICE_ID, HELLO, NORMALIZED_ID, DeviceEmulator
 
@@ -236,7 +241,7 @@ async def test_discovery_identity_mismatch(
         DOMAIN, context={"source": "zeroconf"}, data=discovery()
     )
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
-    assert result["errors"] == {"base": "cannot_connect"}
+    assert result["errors"] == {"base": "wrong_device"}
     probe.return_value["device_id"] = "aa-bb-cc-dd-ee-ff"
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -297,6 +302,45 @@ async def test_reconfigure(
     assert len(hass.config_entries.async_entries(DOMAIN)) == 1
     reload.assert_awaited_once_with(entry.entry_id)
     probe.assert_awaited_once_with("new.local", 7000)
+
+
+@pytest.mark.parametrize("source", ["user", "zeroconf", "reconfigure"])
+@pytest.mark.parametrize(
+    ("exception", "error_key"),
+    [
+        (UnsupportedProtocolError(), "unsupported_protocol"),
+        (InvalidResponseError(), "invalid_response"),
+        (DeviceIdentityError(), "wrong_device"),
+    ],
+)
+async def test_specific_connection_errors(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    probe: AsyncMock,
+    source: str,
+    exception: Exception,
+    error_key: str,
+) -> None:
+    context = {"source": source}
+    data = None
+    if source == "reconfigure":
+        entry.add_to_hass(hass)
+        context["entry_id"] = entry.entry_id
+    elif source == "zeroconf":
+        data = discovery()
+    probe.side_effect = exception
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context=context, data=data
+    )
+    user_input = {} if source == "zeroconf" else {"host": "device.local", "port": 6054}
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": error_key}
+    probe.assert_awaited_once_with(
+        "127.0.0.1" if source == "zeroconf" else "device.local", 6054
+    )
 
 
 @pytest.mark.parametrize(

@@ -39,6 +39,26 @@ counts. Hostnames/IP addresses, device identifiers and names are redacted.
 Sensor readings, entity states and arbitrary device metadata are omitted.
 Downloading does not send commands to the device and also works while disconnected.
 
+## Connection problems and repairs
+
+The setup, reconfiguration, command errors and repair notices are available in
+English and Dutch, following your Home Assistant language settings. Device names
+and entity names provided by firmware are preserved.
+
+Connection errors distinguish unreachable devices, invalid native API responses,
+unsupported API versions and mismatched device identities. Check the native API
+port (default: 6054) and whether the `OpenBekenAPI` driver is running.
+
+Confirmed unsupported API versions or changed device identities create an entry
+in **Settings → System → Repairs** with instructions for correcting the address
+or firmware. These require a manual change; they are not automatic repair flows.
+Temporary network outages continue reconnecting without a repair notice. Notices
+are removed after a successful connection or when the entry is removed. They are
+scoped per device and do not persist across restarts unless detected again.
+
+When a command times out, the device may already have acted on it. The error
+therefore asks you to check its actual state before retrying.
+
 ## Issues
 
 Please report integration-specific issues in the [issue tracker](https://github.com/WilbertVerhoeff/openbeken-homeassistant/issues).

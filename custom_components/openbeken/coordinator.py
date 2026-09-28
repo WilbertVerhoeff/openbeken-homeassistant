@@ -13,6 +13,8 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, PROTOCOL_VERSION
+from .errors import DeviceIdentityError, InvalidResponseError, UnsupportedProtocolError, connection_error_key
+from .issues import async_clear_connection_issue, async_report_connection_issue
 
 _LOGGER = logging.getLogger(__name__)
 # Entity metadata and full snapshots can contain many channels.
@@ -20,15 +22,30 @@ MAX_LINE = 8192
 CONNECT_TIMEOUT = 15
 
 
+def _validate_hello(hello: dict[str, Any]) -> str:
+    """Validate the greeting before accepting metadata or sending commands."""
+    if hello.get("type") != "hello" or "protocol" not in hello:
+        raise InvalidResponseError("The device does not speak OpenBeken API protocol 1")
+    if hello["protocol"] != PROTOCOL_VERSION:
+        raise UnsupportedProtocolError("The device does not speak OpenBeken API protocol 1")
+    device_id = hello.get("device_id")
+    if not isinstance(device_id, str) or not device_id:
+        raise InvalidResponseError("The device does not speak OpenBeken API protocol 1")
+    return device_id
+
+
 async def _read_json_line(reader: asyncio.StreamReader, timeout: float = 75) -> dict[str, Any]:
     raw = await asyncio.wait_for(reader.readline(), timeout=timeout)
     if not raw:
         raise ConnectionError("Device closed the connection")
     if len(raw) > MAX_LINE or not raw.endswith(b"\n"):
-        raise ValueError("Invalid or oversized OpenBeken packet")
-    data = json.loads(raw)
+        raise InvalidResponseError("Invalid or oversized OpenBeken packet")
+    try:
+        data = json.loads(raw)
+    except (ValueError, UnicodeDecodeError) as err:
+        raise InvalidResponseError("Invalid OpenBeken JSON packet") from err
     if not isinstance(data, dict):
-        raise ValueError("Expected a JSON object")
+        raise InvalidResponseError("Expected a JSON object")
     return data
 
 
@@ -36,9 +53,7 @@ async def async_probe_device(host: str, port: int) -> dict[str, Any]:
     reader, writer = await asyncio.wait_for(asyncio.open_connection(host, port), timeout=5)
     try:
         hello = await _read_json_line(reader, timeout=8)
-        device_id = hello.get("device_id")
-        if hello.get("type") != "hello" or hello.get("protocol") != PROTOCOL_VERSION or not isinstance(device_id, str) or not device_id:
-            raise ValueError("The device does not speak OpenBeken API protocol 1")
+        _validate_hello(hello)
         writer.write(b'{"type":"hello","protocol":1,"client":"home-assistant"}\n')
         await asyncio.wait_for(writer.drain(), timeout=5)
         return hello
@@ -81,6 +96,7 @@ class OpenBekenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             async with asyncio.timeout(CONNECT_TIMEOUT):
                 await self._handshake()
             self._connected = True
+            async_clear_connection_issue(self.hass, self.config_entry)
             self._async_update_device_info()
             self.async_set_updated_data({"entities": self.entities, "states": self.states})
             self._runner = self.config_entry.async_create_background_task(
@@ -93,15 +109,16 @@ class OpenBekenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise
         except (OSError, asyncio.TimeoutError, ConnectionError, ValueError, json.JSONDecodeError, UpdateFailed) as err:
             await self._close_connection()
-            raise UpdateFailed(f"Could not connect to OpenBeken device: {err}") from err
+            async_report_connection_issue(self.hass, self.config_entry, err)
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key=connection_error_key(err)) from err
 
     async def _handshake(self) -> None:
         """Finish the entire initial exchange within one overall deadline."""
         self._reader, self._writer = await asyncio.wait_for(asyncio.open_connection(self.host, self.port), timeout=5)
         hello = await _read_json_line(self._reader, timeout=8)
-        device_id = hello.get("device_id")
-        if hello.get("type") != "hello" or hello.get("protocol") != PROTOCOL_VERSION or not isinstance(device_id, str) or device_id.replace(":", "").replace("-", "").lower() != self.device_id.replace(":", "").replace("-", "").lower():
-            raise ValueError("OpenBeken device identity or protocol changed")
+        device_id = _validate_hello(hello)
+        if device_id.replace(":", "").replace("-", "").lower() != self.device_id.replace(":", "").replace("-", "").lower():
+            raise DeviceIdentityError("OpenBeken device identity or protocol changed")
         self.firmware = hello.get("firmware")
         self._writer.write(b'{"type":"hello","protocol":1,"client":"home-assistant"}\n')
         await asyncio.wait_for(self._writer.drain(), timeout=5)

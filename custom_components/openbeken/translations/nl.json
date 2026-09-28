@@ -1,0 +1,50 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Verbinden met OpenBeken",
+        "description": "Vul het IP-adres of de hostnaam en de poort van de native API in (standaard: 6054). De OpenBekenAPI-driver moet actief zijn op het apparaat.",
+        "data": {"host": "IP-adres of hostnaam", "port": "Poort"}
+      },
+      "discovery_confirm": {"title": "OpenBeken ontdekt", "description": "Wil je {name} toevoegen aan Home Assistant?"},
+      "reconfigure": {
+        "title": "OpenBeken opnieuw configureren",
+        "description": "Vul het nieuwe IP-adres of de hostnaam en de poort van de native API van hetzelfde apparaat in.",
+        "data": {"host": "IP-adres of hostnaam", "port": "Poort"}
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan geen verbinding maken. Controleer het adres, de poort, de netwerkverbinding en of de OpenBekenAPI-driver actief is. De standaardpoort is 6054.",
+      "unsupported_protocol": "Dit apparaat meldt een niet-ondersteunde API-versie. Gebruik OpenBeken-firmware met native API-versie 1 of controleer of het adres en de poort kloppen.",
+      "invalid_response": "Het apparaat op dit adres gaf geen geldig OpenBeken-antwoord. Controleer de poort van de native API (standaard: 6054) en de OpenBekenAPI-driver.",
+      "wrong_device": "Het ontdekte adres hoort bij een ander apparaat. Laat het apparaat opnieuw ontdekken of voeg het bedoelde apparaat handmatig toe. Bestaande instellingen zijn niet gewijzigd."
+    },
+    "abort": {
+      "already_configured": "Dit OpenBeken-apparaat is al geconfigureerd.",
+      "already_in_progress": "Dit apparaat wordt al geconfigureerd. Rond eerst de bestaande configuratie af.",
+      "unsupported_protocol": "Het apparaat meldt een niet-ondersteunde API-versie. Gebruik OpenBeken-firmware met native API-versie 1.",
+      "no_device_id": "Het apparaat heeft geen identificatie doorgegeven. Controleer de firmware en de MDNS-driver of voeg het apparaat handmatig toe.",
+      "wrong_device": "Dit adres hoort bij een ander OpenBeken-apparaat. Voeg het toe als een aparte integratie. Bestaande instellingen zijn niet gewijzigd.",
+      "reconfigure_successful": "De verbindingsinstellingen zijn bijgewerkt."
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {"message": "Kan geen verbinding maken met OpenBeken. Controleer het adres, de poort van de native API (standaard: 6054), het netwerk en de OpenBekenAPI-driver. Home Assistant probeert automatisch opnieuw."},
+    "unsupported_protocol": {"message": "Het ingestelde adres meldt een niet-ondersteunde API-versie. Controleer het adres en de poort of gebruik OpenBeken-firmware met native API-versie 1."},
+    "invalid_response": {"message": "Het ingestelde adres gaf geen geldig OpenBeken-antwoord. Controleer de poort van de native API en de OpenBekenAPI-driver."},
+    "wrong_device": {"message": "Het ingestelde adres hoort bij een ander apparaat. Configureer de integratie opnieuw met het adres van het oorspronkelijke apparaat om de entiteiten te behouden."},
+    "command_timeout": {"message": "Het apparaat heeft de opdracht niet op tijd bevestigd. De toestand is onzeker; controleer het apparaat voordat je het opnieuw probeert."},
+    "device_unavailable": {"message": "Het apparaat kon niet worden bereikt. Controleer de netwerkverbinding en het adres. Home Assistant probeert automatisch opnieuw te verbinden."},
+    "command_rejected": {"message": "Het apparaat heeft de opdracht geweigerd. Controleer of de firmware de gevraagde actie of lichtinstelling ondersteunt."}
+  },
+  "issues": {
+    "unsupported_protocol": {
+      "title": "Niet-ondersteunde OpenBeken-API voor {name}",
+      "description": "Het ingestelde adres voor {name} meldt een niet-ondersteunde API-versie. Controleer het adres en de poort via Instellingen → Apparaten & diensten → OpenBeken → Opnieuw configureren. Kloppen deze, installeer dan OpenBeken-firmware met native API-versie 1 en activeer de OpenBekenAPI-driver. Home Assistant probeert automatisch opnieuw te verbinden en verwijdert deze melding zodra de verbinding werkt."
+    },
+    "wrong_device": {
+      "title": "Ander OpenBeken-apparaat gevonden voor {name}",
+      "description": "Het ingestelde adres hoort nu bij een ander apparaat. Ga naar Instellingen → Apparaten & diensten → OpenBeken → Opnieuw configureren en vul het huidige adres en de poort van het oorspronkelijke apparaat in. Zo blijven de entiteiten en automatiseringen van {name} behouden. Voeg een vervangend apparaat toe als een aparte integratie. Deze melding verdwijnt zodra het oorspronkelijke apparaat weer verbonden is."
+    }
+  }
+}

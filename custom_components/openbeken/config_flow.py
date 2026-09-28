@@ -15,6 +15,7 @@ from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 from .const import DEFAULT_PORT, DOMAIN, PROTOCOL_VERSION
 from .coordinator import async_probe_device
+from .errors import DeviceIdentityError, connection_error_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,11 +63,11 @@ class OpenBekenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 hello = await async_probe_device(info[CONF_HOST], info["port"])
                 device_id = hello["device_id"].replace(":", "").replace("-", "").lower()
                 if device_id != info["device_id"].replace(":", "").replace("-", "").lower():
-                    raise ValueError("Discovered OpenBeken device identity changed")
+                    raise DeviceIdentityError("Discovered OpenBeken device identity changed")
                 return await self._async_add_device(info[CONF_HOST], info["port"], info[CONF_NAME], info["device_id"])
             except (OSError, asyncio.TimeoutError, ValueError, KeyError) as err:
                 _LOGGER.debug("Could not connect to discovered OpenBeken device: %s", err)
-                errors["base"] = "cannot_connect"
+                errors["base"] = connection_error_key(err)
         return self.async_show_form(step_id="discovery_confirm", errors=errors, description_placeholders={"name": self.context["title_placeholders"]["name"]})
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
@@ -78,7 +79,7 @@ class OpenBekenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self._async_add_device(user_input[CONF_HOST], user_input["port"], hello.get("name", "OpenBeken"), device_id)
             except (OSError, asyncio.TimeoutError, ValueError, KeyError) as err:
                 _LOGGER.debug("Could not connect to OpenBeken device: %s", err)
-                errors["base"] = "cannot_connect"
+                errors["base"] = connection_error_key(err)
         schema = vol.Schema({vol.Required(CONF_HOST): str, vol.Optional("port", default=DEFAULT_PORT): vol.All(int, vol.Range(min=1, max=65535))})
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
@@ -92,7 +93,7 @@ class OpenBekenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(hello["device_id"].replace(":", "").replace("-", "").lower())
             except (OSError, asyncio.TimeoutError, ValueError, KeyError) as err:
                 _LOGGER.debug("Could not reconnect to OpenBeken device: %s", err)
-                errors["base"] = "cannot_connect"
+                errors["base"] = connection_error_key(err)
             else:
                 self._abort_if_unique_id_mismatch(reason="wrong_device")
                 return self.async_update_reload_and_abort(entry, data_updates=user_input)

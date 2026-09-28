@@ -8,6 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .coordinator import OpenBekenCoordinator
 from .entity import OpenBekenEntity, async_setup_dynamic_platform
+from .errors import async_execute_command
 
 
 async def async_setup_entry(
@@ -27,4 +28,4 @@ class OpenBekenRestartButton(OpenBekenEntity, ButtonEntity):
         return self.coordinator.connected and self.description_available
 
     async def async_press(self) -> None:
-        await self.coordinator.async_restart()
+        await async_execute_command(self.coordinator.async_restart())
