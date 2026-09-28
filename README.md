@@ -91,3 +91,7 @@ checks test lint and formatting on every push and pull request. The XML coverage
 report is available as an Actions artifact. This suite does not replace testing
 on physical OpenBeken devices or real mDNS networks, and currently covers the
 pinned Home Assistant version rather than a compatibility matrix.
+
+The **Hassfest validation** workflow also checks the integration structure,
+manifest and translation schemas with Home Assistant's official hassfest action
+on every push and pull request. It can be run manually from GitHub Actions.
