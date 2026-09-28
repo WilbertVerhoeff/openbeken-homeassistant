@@ -81,3 +81,21 @@ class OpenBekenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
         schema = vol.Schema({vol.Required(CONF_HOST): str, vol.Optional("port", default=DEFAULT_PORT): vol.All(int, vol.Range(min=1, max=65535))})
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Change the endpoint while preserving this device and its entities."""
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                hello = await async_probe_device(user_input[CONF_HOST], user_input["port"])
+                await self.async_set_unique_id(hello["device_id"].replace(":", "").replace("-", "").lower())
+            except (OSError, asyncio.TimeoutError, ValueError, KeyError) as err:
+                _LOGGER.debug("Could not reconnect to OpenBeken device: %s", err)
+                errors["base"] = "cannot_connect"
+            else:
+                self._abort_if_unique_id_mismatch(reason="wrong_device")
+                return self.async_update_reload_and_abort(entry, data_updates=user_input)
+        schema = vol.Schema({vol.Required(CONF_HOST, default=entry.data[CONF_HOST]): str,
+                             vol.Required("port", default=entry.data.get("port", DEFAULT_PORT)): vol.All(int, vol.Range(min=1, max=65535))})
+        return self.async_show_form(step_id="reconfigure", data_schema=schema, errors=errors)

@@ -263,3 +263,138 @@ async def test_real_device_probe(hass: HomeAssistant, device: DeviceEmulator) ->
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["result"].unique_id == NORMALIZED_ID
+
+
+@pytest.mark.parametrize("identity", [DEVICE_ID, "aa-bb-cc-dd-ee-ff", NORMALIZED_ID])
+async def test_reconfigure(
+    hass: HomeAssistant, entry: MockConfigEntry, probe: AsyncMock, identity: str
+) -> None:
+    entry.add_to_hass(hass)
+    original = dict(entry.data)
+    probe.return_value["device_id"] = identity
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "reconfigure", "entry_id": entry.entry_id}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+    assert result["data_schema"]({}) == {
+        "host": original["host"],
+        "port": original["port"],
+    }
+    probe.assert_not_awaited()
+    with patch.object(
+        hass.config_entries, "async_reload", AsyncMock(return_value=True)
+    ) as reload:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "new.local", "port": 7000}
+        )
+        await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.data == original | {"host": "new.local", "port": 7000}
+    assert entry.unique_id == NORMALIZED_ID
+    assert entry.title == "Test device"
+    assert len(hass.config_entries.async_entries(DOMAIN)) == 1
+    reload.assert_awaited_once_with(entry.entry_id)
+    probe.assert_awaited_once_with("new.local", 7000)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [OSError("offline"), TimeoutError(), ValueError("protocol"), KeyError("device_id")],
+)
+async def test_reconfigure_error_recovery(
+    hass: HomeAssistant, entry: MockConfigEntry, probe: AsyncMock, error: Exception
+) -> None:
+    entry.add_to_hass(hass)
+    original = dict(entry.data)
+    probe.side_effect = [error, deepcopy(HELLO)]
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "reconfigure", "entry_id": entry.entry_id}
+    )
+    with patch.object(
+        hass.config_entries, "async_reload", AsyncMock(return_value=True)
+    ) as reload:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "new.local", "port": 7000}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["errors"] == {"base": "cannot_connect"}
+        assert entry.data == original
+        reload.assert_not_awaited()
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "new.local", "port": 7000}
+        )
+        await hass.async_block_till_done()
+    assert result["reason"] == "reconfigure_successful"
+    reload.assert_awaited_once_with(entry.entry_id)
+
+
+async def test_reconfigure_wrong_device(
+    hass: HomeAssistant, entry: MockConfigEntry, probe: AsyncMock
+) -> None:
+    entry.add_to_hass(hass)
+    original = dict(entry.data)
+    probe.return_value["device_id"] = "11:22:33:44:55:66"
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "reconfigure", "entry_id": entry.entry_id}
+    )
+    with patch.object(hass.config_entries, "async_reload", AsyncMock()) as reload:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "wrong.local", "port": 7000}
+        )
+        await hass.async_block_till_done()
+    assert result["reason"] == "wrong_device"
+    assert entry.data == original
+    assert entry.unique_id == NORMALIZED_ID
+    reload.assert_not_awaited()
+
+
+@pytest.mark.parametrize("port", [0, -1, 65536, "bad"])
+async def test_reconfigure_invalid_port(
+    hass: HomeAssistant, entry: MockConfigEntry, probe: AsyncMock, port: Any
+) -> None:
+    entry.add_to_hass(hass)
+    original = dict(entry.data)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "reconfigure", "entry_id": entry.entry_id}
+    )
+    with pytest.raises(InvalidData):
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "new.local", "port": port}
+        )
+    assert entry.data == original
+    probe.assert_not_awaited()
+
+
+async def test_reconfigure_legacy_default_port(
+    hass: HomeAssistant, probe: AsyncMock
+) -> None:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=NORMALIZED_ID,
+        data={"host": "old.local", "device_id": DEVICE_ID},
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "reconfigure", "entry_id": entry.entry_id}
+    )
+    assert result["data_schema"]({}) == {"host": "old.local", "port": DEFAULT_PORT}
+
+
+async def test_reconfigure_unchanged_still_reloads(
+    hass: HomeAssistant, entry: MockConfigEntry, probe: AsyncMock
+) -> None:
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "reconfigure", "entry_id": entry.entry_id}
+    )
+    with patch.object(
+        hass.config_entries, "async_reload", AsyncMock(return_value=True)
+    ) as reload:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": entry.data["host"], "port": entry.data["port"]}
+        )
+        await hass.async_block_till_done()
+    assert result["reason"] == "reconfigure_successful"
+    reload.assert_awaited_once_with(entry.entry_id)

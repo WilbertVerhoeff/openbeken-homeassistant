@@ -25,6 +25,20 @@ The integration exposes configured relays as switches; LED outputs as lights; re
 
 See the [native API protocol documentation](https://github.com/openshwprojects/OpenBK7231T_App/blob/main/docs/openbekenNativeAPI.md) and [OpenBeken firmware documentation](https://github.com/openshwprojects/OpenBK7231T_App/blob/main/docs/homeAssistantNative.md).
 
+## Diagnostics and changing the connection
+
+In **Settings → Devices & services**, open the OpenBeken entry's menu and choose
+**Reconfigure** to change its IP address/hostname and TCP port. The integration
+checks the connection and device identity before saving, then reloads the entry.
+Existing entity IDs, device assignments and automations are preserved. A different
+device must be added separately. Failed connection checks leave the old settings intact.
+
+Choose **Download diagnostics** from the same entry menu when reporting a problem.
+The file includes cached connection status, firmware, entity capabilities and
+counts. Hostnames/IP addresses, device identifiers and names are redacted.
+Sensor readings, entity states and arbitrary device metadata are omitted.
+Downloading does not send commands to the device and also works while disconnected.
+
 ## Issues
 
 Please report integration-specific issues in the [issue tracker](https://github.com/WilbertVerhoeff/openbeken-homeassistant/issues).

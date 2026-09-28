@@ -6,7 +6,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openbeken import _async_update_listener, async_unload_entry
+from custom_components.openbeken import async_unload_entry
 from custom_components.openbeken.const import DOMAIN, PLATFORMS
 
 from .conftest import DeviceEmulator
@@ -27,16 +27,6 @@ async def test_failed_setup_is_retried(
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.LOADED
     assert len(hass.states.async_all()) == 5
-
-
-async def test_update_listener_reloads(
-    hass: HomeAssistant, entry: MockConfigEntry
-) -> None:
-    with patch.object(
-        hass.config_entries, "async_reload", AsyncMock(return_value=True)
-    ) as reload:
-        await _async_update_listener(hass, entry)
-    reload.assert_awaited_once_with(entry.entry_id)
 
 
 async def test_unload_platform_failure_keeps_connection(

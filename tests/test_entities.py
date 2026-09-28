@@ -1,7 +1,9 @@
 """Entity behavior tested through HA states, registries, and service calls."""
 
+import asyncio
 from copy import deepcopy
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
@@ -248,3 +250,45 @@ async def test_reload_and_unload(
     # HA keeps registry placeholders after unload; they must be unavailable.
     assert all(state.state == "unavailable" for state in hass.states.async_all())
     assert DOMAIN not in hass.data
+
+
+async def test_reconfigure_preserves_registries_and_reloads_once(
+    hass: HomeAssistant, setup_entry: MockConfigEntry, device: DeviceEmulator
+) -> None:
+    registry = er.async_get(hass)
+    original = {
+        entity_id: (
+            registry.async_get(entity_id).id,
+            registry.async_get(entity_id).device_id,
+        )
+        for entity_id in (state.entity_id for state in hass.states.async_all())
+    }
+    old_coordinator = hass.data[DOMAIN][setup_entry.entry_id]
+    # Serve the same device at a genuinely different TCP endpoint.
+    server = await asyncio.start_server(device.handle, "127.0.0.1", 0)
+    new_port = server.sockets[0].getsockname()[1]
+    try:
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "reconfigure", "entry_id": setup_entry.entry_id}
+        )
+        with patch.object(
+            hass.config_entries, "async_reload", wraps=hass.config_entries.async_reload
+        ) as reload:
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"], {"host": "127.0.0.1", "port": new_port}
+            )
+            await hass.async_block_till_done()
+        assert result["reason"] == "reconfigure_successful"
+        reload.assert_awaited_once_with(setup_entry.entry_id)
+        assert not old_coordinator.connected
+        assert hass.data[DOMAIN][setup_entry.entry_id].connected
+        assert setup_entry.data["port"] == new_port
+        assert setup_entry.state is ConfigEntryState.LOADED
+        assert len(hass.states.async_all()) == 5
+        for entity_id, identity in original.items():
+            entity = registry.async_get(entity_id)
+            assert (entity.id, entity.device_id) == identity
+    finally:
+        server.close()
+        await hass.config_entries.async_unload(setup_entry.entry_id)
+        await server.wait_closed()
