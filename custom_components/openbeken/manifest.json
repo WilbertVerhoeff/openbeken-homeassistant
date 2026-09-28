@@ -7,12 +7,13 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/WilbertVerhoeff/openbeken-homeassistant",
-  "issue_tracker": "https://github.com/WilbertVerhoeff/openbeken-homeassistant/issues",
   "iot_class": "local_push",
+  "issue_tracker": "https://github.com/WilbertVerhoeff/openbeken-homeassistant/issues",
   "loggers": [
     "openbeken"
   ],
   "requirements": [],
+  "version": "0.1.0",
   "zeroconf": [
     {
       "type": "_openbeken._tcp.local.",
@@ -20,6 +21,5 @@
         "api": "1"
       }
     }
-  ],
-  "version": "0.1.0"
+  ]
 }
