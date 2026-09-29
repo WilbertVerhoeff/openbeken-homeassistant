@@ -12,8 +12,8 @@ The API currently has no authentication or TLS. Use it only on a trusted local n
 
 The first [Native HA API firmware beta](https://github.com/WilbertVerhoeff/OpenBK7231T_App/releases/tag/ha-api-v0.1.0-beta.1) is available from the OpenBeken fork. Download the `.rbl` file for your device's chipset:
 
-- [BK7231N](https://github.com/WilbertVerhoeff/OpenBK7231T_App/releases/download/ha-api-v0.1.0-beta.1/OpenBK7231N_ha_api_3b979180.rbl) — checked on one BK7231N device.
-- [BK7231T](https://github.com/WilbertVerhoeff/OpenBK7231T_App/releases/download/ha-api-v0.1.0-beta.1/OpenBK7231T_ha_api_3b979180.rbl) — build checked; hardware operation has not yet been checked.
+- [BK7231N](https://github.com/WilbertVerhoeff/OpenBK7231T_App/releases/download/ha-api-v0.1.0-beta.1/OpenBK7231N_ha_api_3b979180.rbl) — checked on LSC Smart Panel Lights with a BK7231N chip, RGB, warm and cool white, and an IR remote.
+- [BK7231T](https://github.com/WilbertVerhoeff/OpenBK7231T_App/releases/download/ha-api-v0.1.0-beta.1/OpenBK7231T_ha_api_3b979180.rbl) — build checked. Hardware operation has not yet been checked.
 
 The firmware contains no device-specific pin or template configuration. Keep using OpenBeken's device configuration for those settings. Release notes list checksums, activation steps and beta limitations.
 
