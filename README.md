@@ -2,6 +2,8 @@
 
 A native Home Assistant custom integration for OpenBeken devices. It uses local TCP push communication and mDNS discovery.
 
+The current [integration beta release](https://github.com/WilbertVerhoeff/openbeken-homeassistant/releases/tag/0.1.1-beta.1) supports Native API protocol 1. Install it through HACS or copy the integration files as described below.
+
 ## Requirements
 
 The OpenBeken device firmware must include the `OpenBekenAPI` driver. Start it with `startDriver OpenBekenAPI`. For automatic discovery, also run `startDriver MDNS`. Add these commands to `autoexec.bat` to keep them enabled after reboot. The native API listens on TCP port 6054. Without mDNS, add the device by IP address in Home Assistant.
