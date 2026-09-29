@@ -1,6 +1,6 @@
 # OpenBeken Home Assistant integration
 
-A native Home Assistant custom integration for OpenBeken devices. It uses local TCP push communication and mDNS discovery; MQTT is not required.
+A native Home Assistant custom integration for OpenBeken devices. It uses local TCP push communication and mDNS discovery.
 
 ## Requirements
 
@@ -29,4 +29,4 @@ Having a problem? [Open an issue](https://github.com/WilbertVerhoeff/openbeken-h
 4. Open the affected device's integration entry **⋮** menu and select **Download diagnostics**.
 5. Attach the log and diagnostics to your issue. Include your Home Assistant version, integration version, OpenBeken firmware version and device model, plus the steps to reproduce the problem, what you expected and what happened.
 
-Diagnostics redact device addresses and names. Debug logs may contain personal information; check them before uploading. If logging or diagnostics are unavailable, report the issue with the information you have.
+Diagnostics redact device addresses and names. Debug logs may contain personal information. Check them before uploading. If logging or diagnostics are unavailable, report the issue with the information you have.
