@@ -4,9 +4,18 @@ A native Home Assistant custom integration for OpenBeken devices. It uses local 
 
 ## Requirements
 
-The OpenBeken device firmware must include the `OpenBekenAPI` and `MDNS` drivers. Start them with `startDriver OpenBekenAPI` and `startDriver MDNS`, and add those commands to `autoexec.bat` to keep them enabled after reboot. The native API listens on TCP port 6054. If mDNS discovery is unavailable, add the device by IP address in Home Assistant.
+The OpenBeken device firmware must include the `OpenBekenAPI` driver. Start it with `startDriver OpenBekenAPI`. For automatic discovery, also run `startDriver MDNS`. Add these commands to `autoexec.bat` to keep them enabled after reboot. The native API listens on TCP port 6054. Without mDNS, add the device by IP address in Home Assistant.
 
 The API currently has no authentication or TLS. Use it only on a trusted local network.
+
+## Firmware beta
+
+The first [Native HA API firmware beta](https://github.com/WilbertVerhoeff/OpenBK7231T_App/releases/tag/ha-api-v0.1.0-beta.1) is available from the OpenBeken fork. Download the `.rbl` file for your device's chipset:
+
+- [BK7231N](https://github.com/WilbertVerhoeff/OpenBK7231T_App/releases/download/ha-api-v0.1.0-beta.1/OpenBK7231N_ha_api_3b979180.rbl) — checked on one BK7231N device.
+- [BK7231T](https://github.com/WilbertVerhoeff/OpenBK7231T_App/releases/download/ha-api-v0.1.0-beta.1/OpenBK7231T_ha_api_3b979180.rbl) — build checked; hardware operation has not yet been checked.
+
+The firmware contains no device-specific pin or template configuration. Keep using OpenBeken's device configuration for those settings. Release notes list checksums, activation steps and beta limitations.
 
 ## Install with HACS
 
