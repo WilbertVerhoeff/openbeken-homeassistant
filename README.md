@@ -2,7 +2,7 @@
 
 A native Home Assistant custom integration for OpenBeken devices. It uses local TCP push communication and mDNS discovery.
 
-The current [integration beta release](https://github.com/WilbertVerhoeff/openbeken-homeassistant/releases/tag/0.1.1-beta.1) supports Native API protocol 1. Install it through HACS or copy the integration files as described below.
+The current [integration release](https://github.com/WilbertVerhoeff/openbeken-homeassistant/releases/tag/0.1.1) supports Native API protocol 1. Install it through HACS or copy the integration files as described below.
 
 ## Requirements
 

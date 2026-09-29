@@ -13,7 +13,7 @@
     "openbeken"
   ],
   "requirements": [],
-  "version": "0.1.1-beta.1",
+  "version": "0.1.1",
   "zeroconf": [
     {
       "type": "_openbeken._tcp.local.",
